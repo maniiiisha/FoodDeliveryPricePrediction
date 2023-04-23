@@ -1,0 +1,12 @@
+prefix=C:/XYZ DRIVE/Manisha/Food Delivery/myenv/Library
+exec_prefix=C:/XYZ DRIVE/Manisha/Food Delivery/myenv/Library
+libdir=C:/XYZ DRIVE/Manisha/Food Delivery/myenv/Library/lib
+includedir=C:/XYZ DRIVE/Manisha/Food Delivery/myenv/Library/include
+
+Name: libzmq
+Description: 0MQ c++ library
+Version: 4.3.4
+Libs: -L${libdir} -lzmq
+Libs.private: -lstdc++ 
+Requires.private: 
+Cflags: -I${includedir} 
