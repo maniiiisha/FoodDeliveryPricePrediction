@@ -1,24 +1,20 @@
-from flask import Flask,request,render_template,jsonify
-from src.pipeline.prediction_pipeline import CustomData,PredictPipeline
-
+from flask import Flask,request,render_template
+from src.pipeline.prediction_pipeline import Predictionpipeline,Customdata
 
 application = Flask(__name__)
-
 app = application
-
 
 @app.route('/')
 def home_page():
     return render_template('index.html')
 
-@app.route('/predict',methods=['GET','POST'])
-
+@app.route('/prediction', methods=['GET','POST'])
 def predict_datapoint():
     if request.method=='GET':
-        return render_template('form.html')
-    
+        return render_template('home.html')
+
     else:
-        data=CustomData(
+        data = Customdata(
             ID = request.form.get('ID'),
             Delivery_person_ID = request.form.get('Delivery_person_ID'),
             Delivery_person_Age = int(request.form.get('Delivery_person_Age')),
@@ -37,15 +33,18 @@ def predict_datapoint():
             Type_of_vehicle = str(request.form.get('Type_of_vehicle')),
             multiple_deliveries = str(request.form.get('multiple_deliveries')),
             Festival = str(request.form.get('Festival')),
-            City = str(request.form.get('City'))
-        )
-        final_new_data=data.get_data_as_dataframe()
-        predict_pipeline=PredictPipeline()
-        pred=predict_pipeline.predict(final_new_data)
+            City = str(request.form.get('City')))
+        
 
-        results=round(pred[0],2)
+        
+        final_data = data.get_dataframe()
+        print(final_data)
+        predict_pipeline = Predictionpipeline()
+        pred = predict_pipeline.prediction(final_data)
 
-        return render_template('result.html',final_result=results)
+        results = pred[0]
 
-if __name__=="__main__":
-    app.run(host='0.0.0.0',debug=True)
+        return render_template('home.html', results=results)
+    
+if __name__=='__main__':
+    app.run(host='0.0.0.0')

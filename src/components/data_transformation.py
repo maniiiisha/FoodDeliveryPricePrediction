@@ -1,123 +1,131 @@
-import sys 
-from dataclasses import dataclass
-import numpy as np
 import pandas as pd
-from sklearn.compose import ColumnTransformer
-from sklearn.impute import SimpleImputer
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import OrdinalEncoder, StandardScaler, OneHotEncoder
+import numpy as np
+import os,sys
+from src.logging import logging
 from src.exception import CustomException
-from src.logger import logging
-import os
-from src.utils import save_object
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import StandardScaler, OneHotEncoder
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.base import TransformerMixin, BaseEstimator
+from src.utils import save_object,time_to_float
+from dataclasses import dataclass
 
 @dataclass
-class DataTransformationConfig:
-    preprocessor_obj_file_path = os.path.join('artifacts','preprocessor.pkl')
+class datatransformationconfig:
+    preprocesser_path = os.path.join('artifacts','preprocessor.pkl')
 
-class DataTransformation:
+class datatransformation:
     def __init__(self):
-        self.data_transformation_config = DataTransformationConfig()
+        self.transformation_config = datatransformationconfig()
 
-    def get_data_transformation_object(self):
+    def get_transformation_obj(self):
         try:
-            logging.info('Data Transformation initiated.')
+            logging.info('data transformation initiated')
 
-            categorical_cols = ['Delivery_person_ID', 'Order_Date', 'Time_Orderd',
-                                'Time_Order_picked', 'Weather_conditions', 'Road_traffic_density',
-                                'Type_of_order', 'Type_of_vehicle', 'Festival', 'City']
-            numerical_cols = ['Delivery_person_Age', 'Delivery_person_Ratings', 'Restaurant_latitude',
-                                'Restaurant_longitude', 'Delivery_location_latitude',
-                                'Delivery_location_longitude', 'Vehicle_condition',
-                                'multiple_deliveries']
+            num_col = ['Delivery_person_Age','Delivery_person_Ratings',
+                     'Restaurant_latitude','Restaurant_longitude',
+                     'Delivery_location_latitude','Delivery_location_longitude']
+            time_col = ['Time_Orderd','Time_Order_picked']         
+            cat_col = ['Weather_conditions','Road_traffic_density','Vehicle_condition','Type_of_order',
+                      'Type_of_vehicle','multiple_deliveries','Festival','City']
 
-            '''Weather_conditions_categories = ['Fog', 'Stormy', 'Sandstorms', 'Windy', 'Cloudy', 'Sunny']
-            Road_traffic_density_categories = ['Jam', 'High', 'Medium', 'Low']
-            Type_of_order_categories = ['Snack', 'Meal', 'Drinks', 'Buffet']
-            Type_of_vehicle_categories = ['motorcycle', 'scooter', 'electric_scooter', 'bicycle']
-            Festival_categories = ['No', 'Yes']
-            City_categories = ['Metropolitian', 'Urban', 'Semi-Urban']'''
+            target_col = ['Time_taken (min)']
 
-            logging.info('Pipeline initiated.')
+            logging.info('pipeline formation initiated')
 
-            # Numerical Pipeline
-
-            num_pipeline = Pipeline(
-                steps = [
-                    ('imputer', SimpleImputer(strategy='median')),
-                    ('scaler', StandardScaler())
-                ]
-            )
-
-            # Categorical Pipeline
-
-            cat_pipeline = Pipeline(
-                steps = [
-                    ('imputer', SimpleImputer(strategy='most_frequent')),
-                    ('encoder',OneHotEncoder(handle_unknown='ignore')),
-                    ('scaler', StandardScaler(with_mean=False))
-                ]
-            )
-
+            numerical_pipeline = Pipeline(
+                steps = [('imputer', SimpleImputer(missing_values=np.nan, strategy='median')),
+                       ('scaling' ,StandardScaler())])
+            
+            time_pipeline=Pipeline(steps=[('imputer',SimpleImputer(missing_values=np.nan,strategy='most_frequent')),
+                                          ('time_transformer', TimeTransformer()),
+                                          ('scaling',StandardScaler())])
+            
+            categorical_pipeline=Pipeline(
+                steps = [('imputer',SimpleImputer(missing_values=np.nan, strategy='most_frequent')),
+                       ('encoder', OneHotEncoder(handle_unknown='ignore')),
+                       ('scaling', StandardScaler(with_mean=False))])
+            
             preprocessor = ColumnTransformer([
-                ('num_pipeline', num_pipeline, numerical_cols),
-                ('cat_pipeline', cat_pipeline, categorical_cols)
-            ])
+                ('numerical_pipeline', numerical_pipeline, num_col),
+                ('categorical_pipeline', categorical_pipeline, cat_col),
+                ('time_pipeline', time_pipeline, time_col)])
             
             return preprocessor
-            logging.info('Pipeline completed.')
-
-        except Exception as e:
-            logging.info('Error in Data Transformation.')
-            raise CustomException(e, sys)
         
-    def initiate_data_transformation(self, train_path, test_path):
+        except Exception as e:
+            logging.info('error in data transformation initiation')
+            raise CustomException(e,sys)
+    
+    def initiate_data_transformation(self,train_path,test_path):
         try:
-            # Reading train and test data
-            train_df = pd.read_csv(train_path)
-            test_df = pd.read_csv(test_path)
+            df_train = pd.read_csv(train_path)
+            df_test = pd.read_csv(test_path)
 
-            logging.info('Read train and test data completed')
-            logging.info(f'Train Dataframe: \n{train_df.head().to_string()}')
-            logging.info(f'Test Dataframe: \n{test_df.head().to_string()}')
+            df_train['Time_Orderd'] = df_train.apply(lambda row:time_to_float(row['Time_Orderd']),axis=1)
+            df_test['Time_Orderd'] = df_test.apply(lambda row:time_to_float(row['Time_Orderd']),axis=1)
+            df_train['Time_Order_picked'] = df_train.apply(lambda row:time_to_float(row['Time_Order_picked']),axis=1)
+            df_test['Time_Order_picked'] = df_train.apply(lambda row:time_to_float(row['Time_Order_picked']),axis=1)
 
-            logging.info('Obtaining preprocessing object')
-            preprocessing_obj = self.get_data_transformation_object()
-            
-            drop_columns = ['Time_taken (min)', 'ID']
-            target_column_name = ['Time_taken (min)']
+            logging.info("Read Train ans test data completed")
+            logging.info("obtaining preprocesser object")
 
-            target_feature_train_df = train_df[target_column_name]
-            input_feature_train_df = train_df.drop(columns=drop_columns, axis=1)
+            preprocessor_obj = self.get_transformation_obj()
 
-            target_feature_test_df = test_df[target_column_name]
-            input_feature_test_df = test_df.drop(columns=drop_columns, axis=1)
+            target_col = ['Time_taken (min)']
+            drop_col = ['ID','Order_Date','Time_taken (min)']
 
-            # Transforming using preprocessor object
+            target_feature_train_df = df_train[target_col]
+            input_feature_train_df = df_train.drop(columns=drop_col, axis=1)
 
-            input_feature_train_arr = preprocessing_obj.fit_transform(input_feature_train_df)
-            input_feature_test_arr = preprocessing_obj.transform(input_feature_test_df)
+            target_feature_test_df = df_test[target_col]
+            input_feature_test_df = df_test.drop(columns=drop_col, axis=1)
 
-            logging.info('Applying preprocessing object on training and testing datasets.')
+            input_feature_train_arr = preprocessor_obj.fit_transform(input_feature_train_df)
+            input_feature_test_arr = preprocessor_obj.transform(input_feature_test_df)
 
-            target_feature_train_df = np.array(target_feature_train_df)
-            target_feature_test_df = np.array(target_feature_test_df)
+            train_arr = np.c_[input_feature_train_arr,target_feature_train_df]
+            test_arr = np.c_[input_feature_test_arr,target_feature_test_df]
 
-            train_arr = np.c_[input_feature_train_arr, np.array(target_feature_train_df)]
-            test_arr = np.c_[input_feature_test_arr, np.array(target_feature_test_df)]
+            logging.info('data transformation ended and saving the preprocessor obj')
 
             save_object(
-                file_path = self.data_transformation_config.preprocessor_obj_file_path,
-                obj = preprocessing_obj
+                file_path=self.transformation_config.preprocesser_path,
+                obj=preprocessor_obj
             )
-            logging.info('Preprocessor pickle file saved.')
 
-            return(
-                train_arr,
-                test_arr,
-                self.data_transformation_config.preprocessor_obj_file_path
-            )
+            return(train_arr,test_arr, self.transformation_config.preprocesser_path)
         
         except Exception as e:
-            logging.info('Exception occured in the initiate_data_transformation')
-            raise CustomException(e, sys)
+            logging.info('error in data transformation')
+            raise CustomException(e,sys)
+        
+class TimeTransformer(BaseEstimator, TransformerMixin):
+
+    def __init__(self):
+        pass
+    
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        def time_to_float(time_ordered):
+            ddt = time_ordered
+            dsst = str(ddt)
+
+            spt = dsst.split(':')
+            if len(spt) == 2:
+                sst = spt[0] + '.' + spt[1]
+            elif len(spt) == 3:
+                sst = spt[0] + '.' + spt[1]
+            else:
+                sst=spt[0]
+          
+            dst = float(sst)
+            return dst
+        
+        time_strings = [x[0] for x in X]
+
+        time_floats = [time_to_float(time_str) for time_str in time_strings]
+        return [[time_float] for time_float in time_floats]

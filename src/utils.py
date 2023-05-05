@@ -1,53 +1,71 @@
 import os
 import sys
-import pickle
-import numpy as np
-import pandas as pd
-from sklearn.metrics import r2_score, mean_absolute_error, mean_squared_error
+import dill
+from sklearn.metrics import r2_score
 from src.exception import CustomException
-from src.logger import logging
+from src.logging import logging
+   
+def time_to_float(time_ordered):
+    try:
+        ddt = time_ordered
+        dsst = str(ddt)
+        spt = dsst.split(':')
+
+        if len(spt) == 2:
+            sst = spt[0] + '.' + spt[1]
+        elif len(spt) == 3:
+            sst = spt[0] + '.' + spt[1]
+        else:
+            sst=spt[0]
+
+        dst = float(sst)
+        return dst
+    
+    except Exception as e:
+        raise CustomException (e,sys)
+
 
 def save_object(file_path, obj):
     try:
         dir_path = os.path.dirname(file_path)
+
         os.makedirs(dir_path, exist_ok=True)
 
-        with open(file_path, 'wb') as file_obj:
-            pickle.dump(obj, file_obj)
+        with open(file_path, "wb") as file_obj:
+            dill.dump(obj, file_obj)
 
     except Exception as e:
         raise CustomException(e, sys)
 
-def evaluate_model(X_train, y_train, X_test, y_test, models):
+def evaluate_models(X_train,y_train,X_test,y_test,models):
     try:
+        logging.info('report generation for model score initiated')
         report = {}
-
         for i in range(len(models)):
-            model = list(models.values())[i]
-
-            # Train model
+            #select model
+            model=list(models.values())[i]
+            #model training
             model.fit(X_train,y_train)
 
-            # Predict Testing data
-            y_test_pred = model.predict(X_test)
+            #predict data
+            y_pred=model.predict(X_test)
 
-            # Get R2 scores for train and test data
-            # train_model_score = r2_score(ytrain,y_train_pred)
-            test_model_score = r2_score(y_test,y_test_pred)
-
-            report[list(models.keys())[i]] =  test_model_score
+            #find model performance
+            model_score=r2_score(y_test,y_pred)
+            report[list(models.keys())[i]]=model_score
 
         return report
 
     except Exception as e:
-        logging.info('Exception occured during model training')
+        logging.info('error occured in finding model score')
         raise CustomException(e,sys)
     
 def load_object(file_path):
     try:
+        logging.info('load object file path initiated')
         with open(file_path,'rb') as file_obj:
-            return pickle.load(file_obj)
-        
+            return dill.load(file_obj)
+            
     except Exception as e:
-        logging.info('Exception Occured in load_object function utils')
+        logging.info('error in loading file path')
         raise CustomException(e,sys)
