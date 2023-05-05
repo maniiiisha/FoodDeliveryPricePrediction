@@ -21,13 +21,16 @@ class ModelTrainer:
     def initiate_model_training(self, train_array, test_array):
         try:
             logging.info('Splitting dependent and independent variables from train and test data.')
-            
+         
             X_train, y_train, X_test, y_test = (
                 train_array[:, :-1],
                 train_array[:, -1],
                 test_array[:, :-1],
                 test_array[:, -1]
             )
+
+            print(train_array[:5])
+            print(test_array[:5])
         
             models = {
                 'LinearRegression': LinearRegression(),
@@ -62,5 +65,5 @@ class ModelTrainer:
             )
 
         except Exception as e:
-            logging.info('Exception occuredin Model Training.')
+            logging.info('Exception occured in Model Training.')
             raise CustomException(e, sys)

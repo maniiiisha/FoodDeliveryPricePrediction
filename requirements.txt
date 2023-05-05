@@ -1,6 +1,14 @@
-numpy
 pandas
-Flask
+setuptools
+numpy
 seaborn
+matplotlib
 scikit-learn
+statistics
+statsmodels
+dill
+flask
+touch
+pymongo
+datetime
 -e .
