@@ -1,36 +1,39 @@
-import sys
-import os
-from src.exception import CustomException
-from src.logger import logging
-from src.utils import load_object
+import os,sys
 import pandas as pd
+import numpy as np
+from src.utils import load_object
+from src.logging import logging
+from src.exception import CustomException
 
-class PredictPipeline:
-    def __call__(self):
+
+class Predictionpipeline:
+    def __init__(self):
         pass
-
-    def predict(self, features):
+        
+    def prediction(self,features):
         try:
+            logging.info('prediction of test data initiated')
             preprocessor_path = os.path.join('artifacts','preprocessor.pkl')
             model_path = os.path.join('artifacts','model.pkl')
 
             preprocessor = load_object(preprocessor_path)
             model = load_object(model_path)
 
-            data_scaled = preprocessor.transform(features)
-
-            pred = model.predict(data_scaled)
-            return pred
+            scaled = preprocessor.transform(features)
+            
+            predict = model.predict(scaled)
+            logging.info('prediction ended')
+            return predict
         
         except Exception as e:
-            logging.info('Exception occured in prediction')
-            raise CustomException(e, sys)
-
-class CustomData:
+            logging.info('error in path joining or cant predict')
+            raise CustomException (e,sys)
+        
+class Customdata:
     def __init__(self,
                  ID:str,
                  Delivery_person_ID:str,
-                 Delivery_person_Age:float,
+                 Delivery_person_Age:int,
                  Delivery_person_Ratings:float,
                  Restaurant_latitude:float,
                  Restaurant_longitude:float,
@@ -44,10 +47,9 @@ class CustomData:
                  Vehicle_condition:int,
                  Type_of_order:str,
                  Type_of_vehicle:str,
-                 multiple_deliveries:float,
+                 multiple_deliveries:int,
                  Festival:str,
                  City:str):
-        
         self.ID = ID
         self.Delivery_person_ID = Delivery_person_ID
         self.Delivery_person_Age = Delivery_person_Age
@@ -68,9 +70,9 @@ class CustomData:
         self.Festival = Festival
         self.City = City
 
-    def get_data_as_dataframe(self):
+    def get_dataframe(self):
         try:
-            custom_data_input_dict = {
+            custom_input_dict = {
                 'ID':[self.ID],
                 'Delivery_person_ID':[self.Delivery_person_ID],
                 'Delivery_person_Age':[self.Delivery_person_Age],
@@ -90,12 +92,12 @@ class CustomData:
                 'multiple_deliveries':[self.multiple_deliveries],
                 'Festival':[self.Festival],
                 'City':[self.City]
-            }
+                }
             
-            df = pd.DataFrame(custom_data_input_dict)
-            logging.info('Dataframe Gathered.')
+            df = pd.DataFrame(custom_input_dict)
+            logging.info('dataframe created')
             return df
         
         except Exception as e:
-            logging.info('Exception Occured in prediction pipeline.')
+            logging.info('error in the dataframe formation')
             raise CustomException(e,sys)

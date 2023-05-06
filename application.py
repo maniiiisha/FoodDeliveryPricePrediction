@@ -1,5 +1,5 @@
-from flask import Flask,request,render_template
-from src.pipeline.prediction_pipeline import Predictionpipeline,Customdata
+from flask import Flask, request, render_template
+from src.pipeline.prediction_pipeline import Predictionpipeline, Customdata
 
 application = Flask(__name__)
 app = application
@@ -10,9 +10,9 @@ def home_page():
 
 @app.route('/prediction', methods=['GET','POST'])
 def predict_datapoint():
-    if request.method=='GET':
+    if request.method == 'GET':
         return render_template('home.html')
-
+    
     else:
         data = Customdata(
             ID = request.form.get('ID'),
